@@ -24,8 +24,9 @@ else:
 if sys.platform == "linux":
     disabled_warnings = ['-Wno-unused-function', '-Wno-uninitialized']
     compile_args = ['-O2', '-ffast-math'] + disabled_warnings
-elif sys.platform == "Darwin":
-    compile_args = ['-std=c99']
+elif sys.platform == "darwin":
+    compile_args = ['-std=c99', '-O3', '-fopenmp']
+    print("****************************"
 else:
     compile_args = {'gcc': ['/Qstd=c99']}
 
