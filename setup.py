@@ -20,13 +20,14 @@ else:
     use_cython = True
     ext = 'pyx'
 
+print("*****sys.platform*****")
 # add compiler arguments to optimize machine code and ignore warnings
 if sys.platform == "linux":
     disabled_warnings = ['-Wno-unused-function', '-Wno-uninitialized']
     compile_args = ['-O2', '-ffast-math'] + disabled_warnings
 elif sys.platform == "darwin":
-    compile_args = ['-std=c99', '-O3', '-fopenmp']
     print("****************************")
+    compile_args = ['-std=c99', '-O3', '-fopenmp']
 else:
     compile_args = {'gcc': ['/Qstd=c99']}
 
