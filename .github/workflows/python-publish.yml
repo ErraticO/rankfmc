@@ -49,5 +49,5 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
-        twine check dist/*
-        twine upload --skip-existing dist/*
+        python -m twine check dist/*
+        python -m twine upload --skip-existing dist/*
