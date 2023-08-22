@@ -4,7 +4,7 @@ import glob
 from setuptools import Extension, setup
 
 NAME = 'rankfmc'
-VERSION = '0.2.9'
+VERSION = '0.3.0'
 
 # define the extension packages to include
 # ----------------------------------------
