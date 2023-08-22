@@ -27,6 +27,7 @@ jobs:
         buildplat:
           - [ ubuntu-20.04, manylinux1_x86_64 ]
           - [ windows-2019, win_amd64 ]
+          - [macos-11, macosx_*]
         python-version: ['3.6', '3.7', '3.8', '3.9', '3.10', '3.11']
 
     steps:
