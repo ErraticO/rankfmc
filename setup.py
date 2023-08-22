@@ -26,7 +26,7 @@ if sys.platform == "linux":
     compile_args = ['-O2', '-ffast-math'] + disabled_warnings
 elif sys.platform == "darwin":
     compile_args = ['-std=c99', '-O3', '-fopenmp']
-    print("****************************"
+    print("****************************")
 else:
     compile_args = {'gcc': ['/Qstd=c99']}
 
