@@ -5,7 +5,7 @@
 [![Documentation Status](https://readthedocs.org/projects/rankfm/badge/?version=latest)](https://rankfm.readthedocs.io/en/latest/?badge=latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-[[original author]](https://github.com/etlundquist/rankfm)
+[[original author]](https://github.com/etlundquist/rankfm/pull/47)
 
 RankFM is a python implementation of the general [Factorization Machines](https://www.csie.ntu.edu.tw/~b97053/paper/Rendle2010FM.pdf) model class adapted for collaborative filtering recommendation/ranking problems with implicit feedback user/item interaction data. It uses [Bayesian Personalized Ranking (BPR)](https://arxiv.org/pdf/1205.2618.pdf) and a variant of [Weighted Approximate-Rank Pairwise (WARP)](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.587.3946&rep=rep1&type=pdf) loss to learn model weights via Stochastic Gradient Descent (SGD). It can (optionally) incorporate sample weights and user/item auxiliary features to augment the main interaction data.
 
