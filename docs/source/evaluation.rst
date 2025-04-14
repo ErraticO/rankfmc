@@ -1,6 +1,6 @@
 Model Evaluation
 ================
 
-.. automodule:: rankfm.evaluation
+.. automodule:: rankfmc.evaluation
     :members:
     :undoc-members:

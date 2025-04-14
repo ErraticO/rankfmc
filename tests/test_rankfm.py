@@ -3,8 +3,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from rankfm.rankfm import RankFM
-from rankfm.evaluation import hit_rate, reciprocal_rank, discounted_cumulative_gain, precision, recall
+from rankfmc import RankFM
 
 # ------------------------------
 # create sample data for testing

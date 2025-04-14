@@ -19,7 +19,7 @@ Now let's import the library, initialize our model, and fit on the training data
 
 .. code:: python
 
-  from rankfm.rankfm import RankFM
+  from rankfmc import RankFM
   model = RankFM(factors=20, loss='warp', max_samples=20, learning_rate=0.1, learning_schedule='invscaling')
   model.fit(interactions_train, epochs=20, verbose=True)
 
@@ -53,7 +53,7 @@ Now let's see how the model is performing wrt the included validation metrics ev
 
 .. code:: python
 
-  from rankfm.evaluation import hit_rate, reciprocal_rank, discounted_cumulative_gain, precision, recall
+  from rankfmc.evaluation import hit_rate, reciprocal_rank, discounted_cumulative_gain, precision, recall
 
   valid_hit_rate = hit_rate(model, interactions_valid, k=10)
   valid_reciprocal_rank = reciprocal_rank(model, interactions_valid, k=10)

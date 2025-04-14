@@ -1,10 +1,10 @@
-import os
 import sys
 import glob
 from setuptools import Extension, setup
+from pathlib import Path
 
 NAME = 'rankfmc'
-VERSION = '0.3.0'
+VERSION = '0.3.1'
 
 # define the extension packages to include
 # ----------------------------------------
@@ -43,13 +43,11 @@ if use_cython:
     extensions = cythonize(extensions)
 
 # read the contents of your README file
-from pathlib import Path
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
 # define the main package setup function
 # --------------------------------------
-
 setup(
     name=NAME,
     version=VERSION,

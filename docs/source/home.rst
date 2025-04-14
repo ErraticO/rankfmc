@@ -16,42 +16,16 @@ Dependencies
 
 Installation
 ------------
-
-Prerequisites
-^^^^^^^^^^^^^
-
-To install RankFM's C extensions you will need the `GNU Compiler Collection (GCC) <https://gcc.gnu.org/>`_. Check to see whether you already have it installed:
-
-.. code:: bash
-
-  gcc --version
-
-If you don't have it already you can easily install it using `Homebrew <https://brew.sh/>`_ on OSX or your default linux package manager:
-
-.. code:: bash
-
-  # OSX
-  brew install gcc
-
-  # linux
-  sudo yum install gcc
-
-  # ensure [gcc] has been installed correctly and is on the system PATH
-  gcc --version
-
-Package Installation
-^^^^^^^^^^^^^^^^^^^^
-
 You can install the latest published version from PyPI using `pip`:
 
 .. code:: bash
 
-  pip install rankfm
+  pip install rankfmc
 
 Or alternatively install the current development build directly from GitHub:
 
 .. code:: bash
   
-  pip install git+https://github.com/etlundquist/rankfm.git#egg=rankfm
+  pip install git+https://github.com/ErraticO/rankfmc.git
 
 

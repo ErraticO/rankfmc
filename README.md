@@ -7,6 +7,19 @@
 
 [[original author]](https://github.com/etlundquist/rankfm/pull/47)
 
+---
+### Improvement points
+Due to the author's cessation of maintaining Rankfm, only a new project can be created for maintenance.
+
+1. Remove incompatible prints.
+2. Adding Compilation of Different Python Versions for Different Systems.
+3. When github create release, rankfm automatic compilation and release to pipy.
+4. Add README.md to pipy.
+5. Add clear explanations based on the issue.
+6. Removing large C memory view conversion, training speed increased by `52` times.
+
+---
+### Describe
 RankFM is a python implementation of the general [Factorization Machines](https://www.csie.ntu.edu.tw/~b97053/paper/Rendle2010FM.pdf) model class adapted for collaborative filtering recommendation/ranking problems with implicit feedback user/item interaction data. It uses [Bayesian Personalized Ranking (BPR)](https://arxiv.org/pdf/1205.2618.pdf) and a variant of [Weighted Approximate-Rank Pairwise (WARP)](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.587.3946&rep=rep1&type=pdf) loss to learn model weights via Stochastic Gradient Descent (SGD). It can (optionally) incorporate sample weights and user/item auxiliary features to augment the main interaction data.
 
 The core (training, prediction, recommendation) methods are written in [Cython](https://cython.org/), making it possible to scale to millions of user/item interactions. Designed for ease-of-use, RankFM accepts both `pd.DataFrame` and `np.ndarray` inputs - you do not have to convert your data to `scipy.sparse` matrices or re-map user/item identifiers prior to use. RankFM internally maps all user/item identifiers to zero-based integer indexes, but always converts its output back to the original user/item identifiers from your data, which can be arbitrary (non-zero-based, non-consecutive) integers or even strings.
@@ -26,37 +39,14 @@ In addition to the familiar `fit()`, `predict()`, `recommend()` methods, RankFM 
 
 ### Installation
 
-#### Prerequisites
-
-To install RankFM's C extensions you will need the [GNU Compiler Collection (GCC)](https://gcc.gnu.org/). Check to see whether you already have it installed:
-```
-gcc --version
-```
-
-If you don't have it already you can easily install it using [Homebrew](https://brew.sh/) on OSX or your default linux package manager:
-```
-# OSX
-brew install gcc
-
-# linux
-sudo yum install gcc
-
-# ensure [gcc] has been installed correctly and is on the system PATH
-gcc --version
-```
-
-#### Package Installation
-
 You can install the latest published version from PyPI using `pip`:
 ```
 pip install rankfmc
 ```
 Or alternatively install the current development build directly from GitHub:
 ```
-pip install git+https://github.com/etlundquist/rankfm.git#egg=rankfm
+pip install git+https://github.com/ErraticO/rankfmc.git
 ```
-
-It's highly recommended that you use an [Anaconda](https://www.anaconda.com/) base environment to ensure that all core numpy C extensions and linear algebra libraries have been installed and configured correctly. Anaconda: it just works.
 
 ### Quickstart
 Let's work through a simple example of fitting a model, generating recommendations, evaluating performance, and assessing some item-item similarities. The data we'll be using here may already be somewhat familiar: you know it, you love it, it's the [MovieLens 1M](https://grouplens.org/datasets/movielens/1m/)!
@@ -73,7 +63,7 @@ It has just two columns: a `user_id` and an `item_id` (you can name these fields
 
 Now let's import the library, initialize our model, and fit on the training data:
 ```python
-from rankfm.rankfm import RankFM
+from rankfmc import RankFM
 model = RankFM(factors=20, loss='warp', max_samples=20, alpha=0.01, sigma=0.1, learning_rate=0.1, learning_schedule='invscaling')
 model.fit(interactions_train, epochs=20, verbose=True)
 # NOTE: this takes about 30 seconds for 750,000 interactions on my 2.3 GHz i5 8GB RAM MacBook
@@ -100,7 +90,7 @@ The input should be a `pd.Series`, `np.ndarray` or `list` of `user_id` values. Y
 
 Now let's see how the model is performing wrt the included validation metrics evaluated on the hold-out data:
 ```python
-from rankfm.evaluation import hit_rate, reciprocal_rank, discounted_cumulative_gain, precision, recall
+from rankfmc.evaluation import hit_rate, reciprocal_rank, discounted_cumulative_gain, precision, recall
 
 valid_hit_rate = hit_rate(model, interactions_valid, k=10)
 valid_reciprocal_rank = reciprocal_rank(model, interactions_valid, k=10)

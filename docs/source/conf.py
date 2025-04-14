@@ -25,12 +25,12 @@ subprocess.run(cmd, shell=True, check=True)
 # import dependencies
 # -------------------
 
-import rankfm
+import rankfmc
 import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
-project = 'rankfm'
+project = 'rankfmc'
 copyright = '2020, Eric Lundquist'
 author = 'Eric Lundquist'
 
