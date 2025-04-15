@@ -17,6 +17,8 @@ Due to the author's cessation of maintaining Rankfm, only a new project can be c
 4. Add README.md to pipy.
 5. Add clear explanations based on the issue.
 6. Removing large C memory view conversion, training speed increased by `52` times.
+7. Parallel recommendation.
+8. Remove useless global variables to reduce memory.
 
 ---
 ### Describe
