@@ -84,10 +84,6 @@ class RankFM:
         self.user_to_index = None
         self.item_to_index = None
 
-        # user/item interactions and importance weights
-        self.interactions = None
-        self.sample_weight = None
-
         # set of observed items for each user
         self.user_items = None
 
@@ -140,13 +136,14 @@ class RankFM:
         self.item_idx = np.arange(len(self.item_id), dtype=np.int32)
 
         # map the interactions to internal index positions
-        self._init_interactions(interactions, sample_weight)
+        interactions, sample_weight = self._init_interactions(interactions, sample_weight)
 
         # map the user/item features to internal index positions
         self._init_features(user_features, item_features)
 
         # initialize the model weights after the user/item/feature dimensions have been established
         self._init_weights(user_features, item_features)
+        return interactions, sample_weight
 
 
     def _init_interactions(self, interactions, sample_weight):
@@ -162,31 +159,32 @@ class RankFM:
 
         # map the raw user/item identifiers to internal zero-based index positions
         # NOTE: any user/item pairs not found in the existing indexes will be dropped
-        self.interactions = pd.DataFrame(get_data(interactions).copy(), columns=['user_id', 'item_id'])
-        self.interactions['user_id'] = self.interactions['user_id'].map(self.user_to_index).astype(np.int32)
-        self.interactions['item_id'] = self.interactions['item_id'].map(self.item_to_index).astype(np.int32)
-        self.interactions = self.interactions.rename({'user_id': 'user_idx', 'item_id': 'item_idx'}, axis=1).dropna()
+        interactions = pd.DataFrame(get_data(interactions).copy(), columns=['user_id', 'item_id'])
+        interactions['user_id'] = interactions['user_id'].map(self.user_to_index).astype(np.int32)
+        interactions['item_id'] = interactions['item_id'].map(self.item_to_index).astype(np.int32)
+        interactions = interactions.rename({'user_id': 'user_idx', 'item_id': 'item_idx'}, axis=1).dropna()
 
         # store the sample weights internally or generate a vector of ones if not given
         if sample_weight is not None:
             assert isinstance(sample_weight, (np.ndarray, pd.Series)), "[sample_weight] must be np.ndarray or pd.series"
             assert sample_weight.ndim == 1, "[sample_weight] must a vector (ndim=1)"
             assert len(sample_weight) == len(interactions), "[sample_weight] must have the same length as [interactions]"
-            self.sample_weight = np.ascontiguousarray(get_data(sample_weight), dtype=np.float32)
+            sample_weight = np.ascontiguousarray(get_data(sample_weight), dtype=np.float32)
         else:
-            self.sample_weight = np.ones(len(self.interactions), dtype=np.float32)
+            sample_weight = np.ones(len(interactions), dtype=np.float32)
 
         # create a dictionary containing the set of observed items for each user
         # NOTE: if the model has been previously fit extend rather than replace the itemset for each user
 
         if self.is_fit:
-            new_user_items = self.interactions.groupby('user_idx')['item_idx'].apply(set).to_dict()
+            new_user_items = interactions.groupby('user_idx')['item_idx'].apply(set).to_dict()
             self.user_items = {user: np.array(list(set(self.user_items[user]) | set(new_user_items[user])), dtype=np.int32) for user in self.user_items.keys()}
         else:
-            self.user_items = self.interactions.groupby('user_idx')['item_idx'].unique().apply(np.array, dtype=np.int32).to_dict()
+            self.user_items = interactions.groupby('user_idx')['item_idx'].unique().apply(np.array, dtype=np.int32).to_dict()
 
         # format the interactions data as a c-contiguous integer array for cython use
-        self.interactions = np.ascontiguousarray(self.interactions, dtype=np.int32)
+        interactions = np.ascontiguousarray(interactions, dtype=np.int32)
+        return interactions, sample_weight
 
 
 
@@ -294,10 +292,10 @@ class RankFM:
         assert isinstance(verbose, bool), "[verbose] must be a boolean value"
 
         if self.is_fit:
-            self._init_interactions(interactions, sample_weight)
+            interactions, sample_weight = self._init_interactions(interactions, sample_weight)
             self._init_features(user_features, item_features)
         else:
-            self._init_all(interactions, user_features, item_features, sample_weight)
+            interactions, sample_weight = self._init_all(interactions, user_features, item_features, sample_weight)
 
         # determine the number of negative samples to draw depending on the loss function
         # NOTE: if [loss == 'bpr'] -> [max_samples == 1] and [multiplier ~= 1] for all updates
@@ -314,8 +312,8 @@ class RankFM:
         # NOTE: therefore there's nothing returned explicitly by either method
 
         _fit(
-            self.interactions,
-            self.sample_weight,
+            interactions,
+            sample_weight,
             self.user_items,
             self.x_uf,
             self.x_if,
@@ -428,7 +426,7 @@ class RankFM:
         try:
             item_idx = self.item_to_index.loc[item_id]
         except (KeyError, TypeError):
-            print("item_id={} not found in training data".format(item_id))
+            raise("item_id={} not found in training data".format(item_id))
 
         # calculate item latent representations in F dimensional factor space
         lr_item = self.v_i[item_idx] + np.dot(self.v_if.T, self.x_if[item_idx])
@@ -454,7 +452,7 @@ class RankFM:
         try:
             user_idx = self.user_to_index.loc[user_id]
         except (KeyError, TypeError):
-            print("user_id={} not found in training data".format(user_id))
+            raise("user_id={} not found in training data".format(user_id))
 
         # calculate user latent representations in F dimensional factor space
         lr_user = self.v_u[user_idx] + np.dot(self.v_uf.T, self.x_uf[user_idx])
