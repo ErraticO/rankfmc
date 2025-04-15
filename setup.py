@@ -28,7 +28,7 @@ if sys.platform == "linux":
 elif sys.platform == "darwin":
     compile_args = ['-std=c99', '-Xpreprocessor', '-fopenmp', '-lomp']
 else:
-    compile_args = ['/openmp', '/std:c99']
+    compile_args = ['/openmp', '/Qstd=c99']
 
 # define the _rankfm extension including the wrapped MT module
 extensions = [

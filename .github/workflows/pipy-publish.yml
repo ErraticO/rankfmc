@@ -34,6 +34,7 @@ jobs:
         python -m pip install --user --upgrade setuptools wheel twine
         pip install build
         pip install Cython
+        pip install numpy
     - name: Build package
       run: python setup.py sdist bdist_wheel --plat-name=${{ matrix.buildplat[1] }}
     - name: Upload distributions
