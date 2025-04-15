@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from rankfmc.utils import get_data
 
+
 def hit_rate(model, test_interactions, k=10, filter_previous=False):
     """evaluate hit-rate (any match) wrt out-of-sample observed interactions
 
@@ -173,5 +174,3 @@ def diversity(model, test_interactions, k=10, filter_previous=False):
     user_counts = user_counts.reindex(model.item_id.values, fill_value=0).sort_values('cnt_users', ascending=False).reset_index()
     user_counts['pct_users'] = user_counts['cnt_users'] / len(comm_user)
     return user_counts
-
-

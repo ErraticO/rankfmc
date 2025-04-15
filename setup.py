@@ -2,6 +2,7 @@ import sys
 import glob
 from setuptools import Extension, setup
 from pathlib import Path
+import numpy
 
 NAME = 'rankfmc'
 VERSION = '0.3.1'
@@ -23,11 +24,11 @@ else:
 # add compiler arguments to optimize machine code and ignore warnings
 if sys.platform == "linux":
     disabled_warnings = ['-Wno-unused-function', '-Wno-uninitialized']
-    compile_args = ['-O2', '-ffast-math'] + disabled_warnings
+    compile_args = ['-O2', '-ffast-math', '-fopenmp'] + disabled_warnings
 elif sys.platform == "darwin":
-    compile_args = ['-std=c99']
+    compile_args = ['-std=c99', '-Xpreprocessor', '-fopenmp', '-lomp']
 else:
-    compile_args = {'gcc': ['/Qstd=c99']}
+    compile_args = ['/openmp', '/std:c99']
 
 # define the _rankfm extension including the wrapped MT module
 extensions = [
@@ -62,6 +63,7 @@ setup(
     license='GNU General Public License v3.0',
     packages=['rankfmc'],
     ext_modules=extensions,
+    include_dirs=[numpy.get_include()],
     zip_safe=False,
     python_requires='>=3.6',
     install_requires=['numpy>=1.15', 'pandas>=0.24'],
