@@ -72,7 +72,7 @@ jobs:
         buildplat:
           - [ ubuntu-22.04, manylinux1_x86_64 ]
           - [ windows-2022, win_amd64 ]
-          - [ macos-15, macosx_11_0_arm64 ]
+          - [ macos-15, macosx_15_0_arm64 ]
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
 
     steps:
