@@ -53,6 +53,9 @@ jobs:
         python setup.py sdist bdist_wheel --plat-name=${{ matrix.buildplat[1] }}
 
     - name: Publish package
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
         python -m twine check dist/*
         python -m twine upload --skip-existing dist/*
