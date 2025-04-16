@@ -6,7 +6,7 @@ import numpy
 from setuptools import Extension, setup
 
 NAME = 'rankfmc'
-VERSION = '0.3.1'
+VERSION = '0.3.2'
 
 # define the extension packages to include
 # ----------------------------------------
