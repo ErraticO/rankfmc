@@ -6,7 +6,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   release-build:
@@ -25,6 +24,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
+    - name: Install OpenMP (via Homebrew) for macOS
+      if: runner.os == 'macOS'
+      run: |
+        brew install llvm
+        export CFLAGS="-I/usr/local/opt/llvm/include"
+        export LDFLAGS="-L/usr/local/opt/llvm/lib -lomp"
 
     - name: Cache Python dependencies
       uses: actions/cache@v3
