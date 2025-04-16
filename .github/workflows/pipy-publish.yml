@@ -41,22 +41,24 @@ jobs:
 
     - name: Install OpenMP
       run: |
-        if [ "$RUNNER_OS" == "macOS" ]; then
+        if [[ "$RUNNER_OS" == "macOS" ]]; then
           brew install libomp
           export LDFLAGS="-L/opt/homebrew/opt/libomp/lib"
           export CPPFLAGS="-I/opt/homebrew/opt/libomp/include"
-        elif [ "$RUNNER_OS" == "Linux" ]; then
+          export PATH="/opt/homebrew/opt/libomp/bin:$PATH"
+          export CFLAGS="$CFLAGS -DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION"
+        elif [[ "$RUNNER_OS" == "Linux" ]]; then
           sudo apt-get update
           sudo apt-get install -y libomp-dev
-        elif [ "$RUNNER_OS" = "Windows" ]; then
+        elif [[ "$RUNNER_OS" == "Windows" ]]; then
           choco install llvm
         fi
-        
+  
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install --upgrade setuptools wheel twine build Cython numpy
-  
+
     - name: Build package
       run: |
         python setup.py sdist bdist_wheel --plat-name=${{ matrix.buildplat[1] }}
