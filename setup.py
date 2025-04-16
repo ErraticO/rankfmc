@@ -25,21 +25,22 @@ else:
 # add compiler and linker arguments to optimize machine code and ignore warnings
 if sys.platform == "linux":
     compile_args = ['-O2', '-ffast-math', '-fopenmp', '-Wno-unused-function', '-Wno-uninitialized']
-    extra_link_args = []
 elif sys.platform == "darwin":
-    compile_args = ['-std=c99', '-O3', '-Xpreprocessor', '-fopenmp']
-    extra_link_args = ['-lomp']
+    compile_args = [
+        '-std=c99', 
+        '-O3', 
+        '-I/opt/homebrew/opt/libomp/include',
+        '-L/opt/homebrew/opt/libomp/lib',
+        '-lomp'
+    ]
 else:
     compile_args = ['/openmp', '/O2']
-    extra_link_args = []
-
 # define the _rankfm extension including the wrapped MT module
 extensions = [
     Extension(
         name='rankfmc._rankfm',
         sources=['rankfmc/_rankfm.{ext}'.format(ext=ext), 'rankfmc/mt19937ar/mt19937ar.c'],
-        extra_compile_args=compile_args,
-        extra_link_args=extra_link_args
+        extra_compile_args=compile_args
     )
 ]
 
