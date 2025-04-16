@@ -28,9 +28,7 @@ jobs:
     - name: Install OpenMP (via Homebrew) for macOS
       if: runner.os == 'macOS'
       run: |
-        brew install llvm
-        export CFLAGS="-I/usr/local/opt/llvm/include"
-        export LDFLAGS="-L/usr/local/opt/llvm/lib -lomp"
+        brew install libomp
 
     - name: Cache Python dependencies
       uses: actions/cache@v3
