@@ -34,9 +34,6 @@ jobs:
         brew install llvm
         echo "/usr/local/opt/llvm/lib" >> /etc/paths
         echo "/usr/local/opt/llvm/include" >> /etc/paths
-        # Set compiler to Homebrew's clang
-        export CC=/usr/local/opt/llvm/bin/clang
-        export CXX=/usr/local/opt/llvm/bin/clang++
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
