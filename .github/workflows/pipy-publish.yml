@@ -32,8 +32,6 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install llvm
-        echo "/usr/local/opt/llvm/lib" >> /etc/paths
-        echo "/usr/local/opt/llvm/include" >> /etc/paths
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
