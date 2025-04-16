@@ -21,21 +21,24 @@ else:
     use_cython = True
     ext = 'pyx'
 
-# add compiler arguments to optimize machine code and ignore warnings
+# add compiler and linker arguments to optimize machine code and ignore warnings
 if sys.platform == "linux":
-    disabled_warnings = ['-Wno-unused-function', '-Wno-uninitialized']
-    compile_args = ['-O2', '-ffast-math', '-fopenmp'] + disabled_warnings
+    compile_args = ['-O2', '-ffast-math', '-fopenmp', '-Wno-unused-function', '-Wno-uninitialized']
+    link_args = ['-fopenmp']
 elif sys.platform == "darwin":
-    compile_args = ['-std=c99', '-Xpreprocessor', '-fopenmp', '-lomp']
+    compile_args = ['-std=c99', '-Xpreprocessor', '-fopenmp', '-I/usr/local/include']
+    link_args = ['-lomp', '-L/usr/local/lib']
 else:
     compile_args = ['/openmp', '/Qstd=c99']
+    link_args = []
 
 # define the _rankfm extension including the wrapped MT module
 extensions = [
     Extension(
         name='rankfmc._rankfm',
         sources=['rankfmc/_rankfm.{ext}'.format(ext=ext), 'rankfmc/mt19937ar/mt19937ar.c'],
-        extra_compile_args=compile_args
+        extra_compile_args=compile_args,
+        extra_link_args=link_args,
     )
 ]
 
