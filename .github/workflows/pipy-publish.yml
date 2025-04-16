@@ -62,24 +62,17 @@ jobs:
     needs:
       - release-build
     permissions:
-      id-token: write
+      contents: read  # This job doesn't need to `git push` anything
+      id-token: write  # PyPI Trusted Publishing (OIDC)
     environment:
       name: pypi
       url: https://pypi.org/p/rankfmc
-
-    strategy:
-      matrix:
-        buildplat:
-          - [ ubuntu-22.04, manylinux1_x86_64 ]
-          - [ windows-2022, win_amd64 ]
-          - [ macos-15, macosx_15_0_arm64 ]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
 
     steps:
       - name: Retrieve release distributions
         uses: actions/download-artifact@v4
         with:
-          name: release-dists-${{ matrix.buildplat[1] }}-${{ matrix.python-version }}
+          name: release-dists-*
           path: dist/
 
       - name: Publish release distributions to PyPI
