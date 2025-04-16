@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   release-build:
@@ -24,25 +25,40 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install OpenMP (via Homebrew) for macOS
-      if: runner.os == 'macOS'
+
+    - name: Install OpenMP
       run: |
-        brew install libomp
-        export CFLAGS="-I/usr/local/include -L/usr/local/lib"
+        if [[ "$RUNNER_OS" == "macOS" ]]; then
+          brew install libomp
+          export CFLAGS="-Xpreprocessor -fopenmp -I/usr/local/include -L/usr/local/lib"
+          export LDFLAGS="-L/usr/local/lib"
+        elif [[ "$RUNNER_OS" == "Linux" ]]; then
+          sudo apt-get update
+          sudo apt-get install -y libomp-dev
+        fi
+        
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install --user --upgrade setuptools wheel twine
-        pip install build
-        pip install Cython
-        pip install numpy
+        python -m pip pip install --upgrade setuptools wheel twine build Cython numpy
+  
     - name: Build package
       run: |
         python setup.py sdist bdist_wheel --plat-name=${{ matrix.buildplat[1] }}
+
     - name: Upload distributions
       uses: actions/upload-artifact@v4
       with:
@@ -55,6 +71,7 @@ jobs:
       - release-build
     permissions:
       id-token: write
+      contents: read
     environment:
       name: pypi
       url: https://pypi.org/p/rankfmc
