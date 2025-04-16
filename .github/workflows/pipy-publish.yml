@@ -40,7 +40,7 @@ jobs:
     - name: Upload distributions
       uses: actions/upload-artifact@v4
       with:
-        name: release-dists
+        name: release-dists-${{ matrix.buildplat[1] }}-${{ matrix.python-version }}
         path: dist/
 
   pypi-publish:
@@ -53,11 +53,19 @@ jobs:
       name: pypi
       url: https://pypi.org/p/rankfmc
 
+    strategy:
+      matrix:
+        buildplat:
+          - [ ubuntu-20.04, manylinux1_x86_64 ]
+          - [ windows-2019, win_amd64 ]
+          - [ macos-11, macosx_11_0_arm64 ]
+        python-version: ['3.6', '3.7', '3.8', '3.9', '3.10', '3.11']
+
     steps:
       - name: Retrieve release distributions
         uses: actions/download-artifact@v4
         with:
-          name: release-dists
+          name: release-dists-${{ matrix.buildplat[1] }}-${{ matrix.python-version }}
           path: dist/
 
       - name: Publish release distributions to PyPI
