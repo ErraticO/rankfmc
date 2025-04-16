@@ -43,8 +43,8 @@ jobs:
       run: |
         # Set OpenMP flags for macOS
         if [[ "${{ matrix.buildplat[0] }}" == "macos-15" ]]; then
-          export CFLAGS="-I/usr/local/opt/llvm/include"
-          export LDFLAGS="-L/usr/local/opt/llvm/lib -lomp"
+          export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
+          export LDFLAGS="-L/opt/homebrew/opt/llvm/lib -lomp"
           export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
         fi
         python setup.py sdist bdist_wheel --plat-name=${{ matrix.buildplat[1] }}
