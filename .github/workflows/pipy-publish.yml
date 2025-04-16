@@ -28,6 +28,15 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install OpenMP (via Homebrew) for macOS
+      if: runner.os == 'macOS'
+      run: |
+        brew install llvm
+        echo "/usr/local/opt/llvm/lib" >> /etc/paths
+        echo "/usr/local/opt/llvm/include" >> /etc/paths
+        # Set compiler to Homebrew's clang
+        export CC=/usr/local/opt/llvm/bin/clang
+        export CXX=/usr/local/opt/llvm/bin/clang++
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -36,7 +45,13 @@ jobs:
         pip install Cython
         pip install numpy
     - name: Build package
-      run: python setup.py sdist bdist_wheel --plat-name=${{ matrix.buildplat[1] }}
+      run: |
+        # Set OpenMP flags for macOS
+        if [[ "${{ matrix.buildplat[0] }}" == "macos-15" ]]; then
+          export CFLAGS="-I/usr/local/opt/llvm/include"
+          export LDFLAGS="-L/usr/local/opt/llvm/lib -lomp"
+        fi
+        python setup.py sdist bdist_wheel --plat-name=${{ matrix.buildplat[1] }}
     - name: Upload distributions
       uses: actions/upload-artifact@v4
       with:
