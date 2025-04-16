@@ -43,15 +43,13 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "macOS" ]; then
           brew install libomp
-          export CFLAGS="${CFLAGS} -Xpreprocessor -fopenmp -I/usr/local/include"
-          export LDFLAGS="${LDFLAGS} -L/usr/local/lib -lomp"
-          export CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
-          echo "CFLAGS=${CFLAGS}" >> $GITHUB_ENV
-          echo "LDFLAGS=${LDFLAGS}" >> $GITHUB_ENV
-          echo "CPPFLAGS=${CPPFLAGS}" >> $GITHUB_ENV
+          export LDFLAGS="-L/opt/homebrew/opt/libomp/lib"
+          export CPPFLAGS="-I/opt/homebrew/opt/libomp/include"
         elif [ "$RUNNER_OS" == "Linux" ]; then
           sudo apt-get update
           sudo apt-get install -y libomp-dev
+        elif [ "$RUNNER_OS" = "Windows" ]; then
+          choco install llvm
         fi
         
     - name: Install dependencies
