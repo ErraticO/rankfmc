@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8.0", "Cython>=3.0", "numpy>=1.20"]
+build-backend = "setuptools.build_meta"
+
+# ---------------------------------------------------------------------------
+# Project metadata  (PEP 621)
+# ---------------------------------------------------------------------------
+[project]
+name = "rankfmc"
+dynamic = ["version"]
+description = "Factorization Machines for ranking problems with implicit feedback data"
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "ErraticO", email = "wyh123132@163.com" }]
+keywords = ["machine", "learning", "recommendation", "factorization", "machines", "implicit"]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.20",
+    "pandas>=1.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/ErraticO/rankfmc"
+
+[tool.setuptools.packages.find]
+include = ["rankfmc*"]
+
+# ---------------------------------------------------------------------------
+# setuptools-scm: derive version from git tags (e.g. v0.3.4 → 0.3.4)
+# ---------------------------------------------------------------------------
+[tool.setuptools_scm]
+# version_scheme = "release-branch-semver"  # uncomment to customise
+
+# ---------------------------------------------------------------------------
+# cibuildwheel  (https://cibuildwheel.pypa.io)
+# ---------------------------------------------------------------------------
+[tool.cibuildwheel]
+# Build CPython 3.9–3.13 on all platforms; skip musl-libc (Alpine) wheels
+build  = "cp39-* cp310-* cp311-* cp312-* cp313-*"
+skip   = "*-musllinux*"
+build-verbosity = 1
+
+[tool.cibuildwheel.linux]
+before-build = "pip install 'Cython>=3.0' numpy"
+
+[tool.cibuildwheel.windows]
+before-build = "pip install 'Cython>=3.0' numpy"
+
+[tool.cibuildwheel.macos]
+before-build = "brew install libomp && pip install 'Cython>=3.0' numpy"
