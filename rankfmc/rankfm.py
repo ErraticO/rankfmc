@@ -22,7 +22,8 @@ class RankFM:
         sigma=0.1,
         learning_rate=0.1,
         learning_schedule='constant',
-        learning_exponent=0.25
+        learning_exponent=0.25,
+        n_jobs=1,
     ):
         """store hyperparameters and initialize internal model state
 
@@ -35,6 +36,7 @@ class RankFM:
         :param learning_rate: initial learning rate for gradient step updates
         :param learning_schedule: schedule for adjusting learning rates by training epoch: ['constant', 'invscaling']
         :param learning_exponent: exponent applied to epoch number to adjust learning rate: scaling = 1 / pow(epoch + 1, learning_exponent)
+        :param n_jobs: number of parallel OpenMP threads for training, prediction, and recommendation (default=1)
         :return: None
         """
 
@@ -48,6 +50,7 @@ class RankFM:
         assert isinstance(learning_rate, float) and learning_rate > 0.0, "[learning_rate] must be a positive float"
         assert isinstance(learning_schedule, str) and learning_schedule in ('constant', 'invscaling'), "[learning_schedule] must be in ('constant', 'invscaling')"
         assert isinstance(learning_exponent, float) and learning_exponent > 0.0, "[learning_exponent] must be a positive float"
+        assert isinstance(n_jobs, int) and n_jobs >= 1, "[n_jobs] must be a positive integer"
 
         # store model hyperparameters
         self.factors = factors
@@ -59,6 +62,7 @@ class RankFM:
         self.learning_rate = learning_rate
         self.learning_schedule = learning_schedule
         self.learning_exponent = learning_exponent
+        self.n_jobs = n_jobs
 
         # set/clear initial model state
         self._reset_state()
@@ -254,6 +258,36 @@ class RankFM:
             self.v_if = np.zeros([self.x_if.shape[1], self.factors], dtype=np.float32)
 
 
+    def _build_ui_csr(self):
+        """Convert user_items dict to CSR (Compressed Sparse Row) format.
+
+        The resulting arrays are used by the Cython training loop to perform
+        nogil-compatible membership checks during negative sampling.
+
+        :return: (ui_ptr, ui_idx) — CSR row pointers and column indices as int32 arrays
+        """
+        n_users = len(self.user_idx)
+        ptr = np.zeros(n_users + 1, dtype=np.int32)
+
+        for u in range(n_users):
+            n = len(self.user_items[u]) if u in self.user_items else 0
+            ptr[u + 1] = ptr[u] + n
+
+        total = int(ptr[n_users])
+        idx = np.empty(total, dtype=np.int32)
+
+        for u in range(n_users):
+            start = int(ptr[u])
+            end = int(ptr[u + 1])
+            if start < end:
+                idx[start:end] = self.user_items[u]
+
+        return (
+            np.ascontiguousarray(ptr, dtype=np.int32),
+            np.ascontiguousarray(idx, dtype=np.int32),
+        )
+
+
     # -------------------------------
     # begin public method definitions
     # -------------------------------
@@ -308,13 +342,17 @@ class RankFM:
         else:
             raise ValueError('[loss] function not recognized')
 
+        # build CSR representation of user_items for nogil negative sampling in _fit
+        ui_ptr, ui_idx = self._build_ui_csr()
+
         # NOTE: the cython private _fit() method updates the model weights in-place via typed memoryviews
         # NOTE: therefore there's nothing returned explicitly by either method
 
         _fit(
             interactions,
             sample_weight,
-            self.user_items,
+            ui_ptr,
+            ui_idx,
             self.x_uf,
             self.x_if,
             self.w_i,
@@ -330,7 +368,8 @@ class RankFM:
             self.learning_exponent,
             max_samples,
             epochs,
-            verbose
+            verbose,
+            self.n_jobs,
         )
 
         self.is_fit = True
@@ -363,7 +402,8 @@ class RankFM:
             self.v_u,
             self.v_i,
             self.v_uf,
-            self.v_if
+            self.v_if,
+            self.n_jobs,
         )
 
         if cold_start == 'nan':
@@ -374,35 +414,107 @@ class RankFM:
             raise ValueError("param [cold_start] must be set to either 'nan' or 'drop'")
 
 
-    def recommend(self, users, n_items=10, filter_previous=False, cold_start='nan'):
+    def _score_batch(self, user_indices):
+        """Score all items for a batch of users using vectorized BLAS matrix multiplication.
+
+        Uses numpy's highly-optimized BLAS matmul (OpenBLAS / MKL) rather than a manual
+        Cython loop, giving much better throughput through SIMD and multi-threaded BLAS.
+
+        :param user_indices: int32 array of zero-based user indices, shape [B]
+        :return: float32 score matrix of shape [B, I]
+        """
+        v_u_batch = self.v_u[user_indices]                  # [B, F]
+        scores = v_u_batch @ self.v_i.T + self.w_i          # [B, I]  (w_i broadcast over B)
+
+        if np.any(self.x_uf):
+            uf_embed = self.x_uf[user_indices] @ self.v_uf  # [B, P] @ [P, F] = [B, F]
+            scores += uf_embed @ self.v_i.T                  # [B, I]
+
+        if np.any(self.x_if):
+            scores += self.x_if @ self.w_if                  # [I] broadcast over B
+            if_embed = self.x_if @ self.v_if                 # [I, F]
+            scores += v_u_batch @ if_embed.T                 # [B, I]
+
+        return scores.astype(np.float32)                     # ensure float32 output
+
+
+    def recommend(self, users, n_items=10, filter_previous=False, cold_start='nan', batch_size=512):
         """calculate the topN items for each user
+
+        Scoring is done via vectorized BLAS matrix multiplication (_score_batch) which
+        is significantly faster than scalar Cython loops. Top-N selection uses
+        np.argpartition (O(I)) instead of a full argsort (O(I log I)).
 
         :param users: iterable of user identifiers for which to generate recommendations
         :param n_items: number of recommended items to generate for each user
         :param filter_previous: remove observed training items from generated recommendations
         :param cold_start: whether to generate missing values ('nan') or drop ('drop') users not found in training data
+        :param batch_size: number of users to score per batch (controls peak memory:
+               batch_size × I × 4 bytes; default 512)
         :return: pandas dataframe where the index values are user identifiers and the columns are recommended items
         """
 
         assert getattr(users, '__iter__', False), "[users] must be an iterable (e.g. list, array, series)"
         assert self.is_fit, "you must fit the model prior to generating recommendations"
+        assert isinstance(batch_size, int) and batch_size >= 1, "[batch_size] must be a positive integer"
 
-        user_idx = np.ascontiguousarray(pd.Series(users).map(self.user_to_index), dtype=np.float32)
-        rec_items = _recommend(
-            user_idx,
-            self.user_items,
-            n_items,
-            filter_previous,
-            self.x_uf,
-            self.x_if,
-            self.w_i,
-            self.w_if,
-            self.v_u,
-            self.v_i,
-            self.v_uf,
-            self.v_if
-        )
-        rec_items = pd.DataFrame(rec_items, index=users).apply(lambda c: c.map(self.index_to_item))
+        users_series = pd.Series(users)
+        user_idx_float = np.asarray(users_series.map(self.user_to_index), dtype=np.float64)
+        n_users = len(user_idx_float)
+        n_all_items = len(self.item_idx)
+
+        rec_float = np.full((n_users, n_items), np.nan, dtype=np.float32)
+
+        for start in range(0, n_users, batch_size):
+            end = min(start + batch_size, n_users)
+            batch_float = user_idx_float[start:end]          # float64 with NaN for unknowns
+            valid_mask = ~np.isnan(batch_float)
+            valid_int = batch_float[valid_mask].astype(np.int32)
+
+            if len(valid_int) == 0:
+                continue
+
+            # Vectorized scoring: [V, I] via BLAS matmul
+            scores = self._score_batch(valid_int)            # [V, I] float32
+
+            if not filter_previous:
+                # Fast top-N: argpartition O(n_all_items) + small sort O(n log n)
+                if n_all_items <= n_items:
+                    top_n = np.argsort(-scores, axis=1)
+                else:
+                    top_n_unsorted = np.argpartition(-scores, n_items, axis=1)[:, :n_items]
+                    top_n_scores   = np.take_along_axis(scores, top_n_unsorted, axis=1)
+                    sort_order     = np.argsort(-top_n_scores, axis=1)
+                    top_n = np.take_along_axis(top_n_unsorted, sort_order, axis=1)
+                rec_float[start:end][valid_mask] = top_n.astype(np.float32)
+
+            else:
+                # Per-user loop required to filter previously seen items
+                v = 0
+                for b_idx in range(end - start):
+                    if not valid_mask[b_idx]:
+                        continue
+                    u = int(valid_int[v])
+                    user_scores = scores[v]               # [I]
+                    v += 1
+
+                    seen = self.user_items.get(u, np.array([], dtype=np.int32))
+                    n_seen = len(seen)
+
+                    # Fetch enough candidates to survive filtering
+                    k = min(n_items + n_seen, n_all_items)
+                    if k < n_all_items:
+                        top_k = np.argpartition(-user_scores, k)[:k]
+                        top_k = top_k[np.argsort(-user_scores[top_k])]
+                    else:
+                        top_k = np.argsort(-user_scores)
+
+                    seen_set = set(seen.tolist())
+                    selected = [idx for idx in top_k if idx not in seen_set][:n_items]
+                    n_sel = len(selected)
+                    rec_float[start + b_idx, :n_sel] = np.array(selected, dtype=np.float32)
+
+        rec_items = pd.DataFrame(rec_float, index=users).apply(lambda c: c.map(self.index_to_item))
 
         if cold_start == 'nan':
             return rec_items
@@ -462,4 +574,3 @@ class RankFM:
         similarities = pd.Series(np.dot(lr_all_users, lr_user)).drop(user_idx).sort_values(ascending=False)[:n_users]
         most_similar = pd.Series(similarities.index).map(self.index_to_user).values
         return most_similar
-

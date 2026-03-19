@@ -314,6 +314,7 @@ def test__similar_items__bad():
         model = RankFM(factors=2)
         model.fit(intx_train_pd_int)
         similar = model.similar_items(99, n_items=3)
+        print(similar)
 
 
 def test__similar_users__good():
@@ -334,4 +335,4 @@ def test__similar_users__bad():
         model = RankFM(factors=2)
         model.fit(intx_train_pd_int)
         similar = model.similar_users(9, n_users=1)
-
+        print(similar)

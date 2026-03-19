@@ -1,83 +1,57 @@
-import glob
+"""
+Minimal setup.py — only handles the Cython extension build.
+All project metadata lives in pyproject.toml.
+"""
+
+import subprocess
 import sys
-from pathlib import Path
 
 import numpy
+from Cython.Build import cythonize
 from setuptools import Extension, setup
 
-NAME = 'rankfmc'
-VERSION = '0.3.4'
-
-# define the extension packages to include
-# ----------------------------------------
-
-# prefer the generated C extensions when building
-if glob.glob('rankfmc/_rankfm.c'):
-    print("building extensions with pre-generated C source...")
-    use_cython = False
-    ext = 'c'
-else:
-    print("re-generating C source with cythonize...")
-    from Cython.Build import cythonize
-    use_cython = True
-    ext = 'pyx'
-
-# add compiler and linker arguments to optimize machine code and ignore warnings
+# ---------------------------------------------------------------------------
+# Platform-specific OpenMP compiler / linker flags
+# ---------------------------------------------------------------------------
 if sys.platform == "linux":
-    compile_args = ['-O2', '-ffast-math', '-fopenmp', '-Wno-unused-function', '-Wno-uninitialized']
-    link_args = ['-fopenmp']
+    compile_args = ["-O2", "-ffast-math", "-fopenmp",
+                    "-Wno-unused-function", "-Wno-uninitialized"]
+    link_args = ["-fopenmp"]
+
 elif sys.platform == "darwin":
+    # Homebrew libomp provides OpenMP on macOS (clang doesn't ship it).
+    try:
+        libomp_prefix = subprocess.check_output(
+            ["brew", "--prefix", "libomp"], stderr=subprocess.DEVNULL
+        ).decode().strip()
+    except Exception:
+        libomp_prefix = "/opt/homebrew/opt/libomp"
+
     compile_args = [
-        '-std=c99', 
-        '-O3', 
+        "-O3",
+        "-Xpreprocessor", "-fopenmp",
+        f"-I{libomp_prefix}/include",
     ]
-    link_args = [
-        '-I/opt/homebrew/opt/libomp/include',
-        '-L/opt/homebrew/opt/libomp/lib',
-        '-lomp'
-    ]
-else:
-    compile_args = ['/openmp', '/O2']
-    link_args = ['/openmp']
-# define the _rankfm extension including the wrapped MT module
-extensions = [
-    Extension(
-        name='rankfmc._rankfm',
-        sources=['rankfmc/_rankfm.{ext}'.format(ext=ext), 'rankfmc/mt19937ar/mt19937ar.c'],
-        extra_compile_args=compile_args,
-        extra_link_args=link_args
-    )
-]
+    link_args = [f"-L{libomp_prefix}/lib", "-lomp"]
 
-# re-generate the C code if needed
-if use_cython:
-    extensions = cythonize(extensions)
+else:  # Windows (MSVC)
+    compile_args = ["/openmp", "/O2"]
+    link_args = []   # MSVC links OpenMP via the compile flag only
 
-# read the contents of your README file
-this_directory = Path(__file__).parent
-long_description = (this_directory / "README.md").read_text()
-
-# define the main package setup function
-# --------------------------------------
-setup(
-    name=NAME,
-    version=VERSION,
-    description='a python implementation of the generic factorization machines model class '
-                'adapted for collaborative filtering recommendation problems '
-                'with implicit feedback user-item interaction data '
-                'and (optionally) additional user/item side features',
-    author='ErraticO',
-    author_email='wyh123132@163.com',
-    url='https://github.com/ErraticO/rankfmc',
-    keywords=['machine', 'learning', 'recommendation', 'factorization', 'machines', 'implicit'],
-    license='GNU General Public License v3.0',
-    packages=['rankfmc'],
-    ext_modules=extensions,
-    include_dirs=[numpy.get_include()],
-    zip_safe=False,
-    python_requires='>=3.8',
-    install_requires=['numpy>=1.15', 'pandas>=0.24'],
-    long_description=long_description,
-    long_description_content_type="text/markdown",
+# ---------------------------------------------------------------------------
+# Cython extension
+# ---------------------------------------------------------------------------
+extensions = cythonize(
+    [
+        Extension(
+            name="rankfmc._rankfm",
+            sources=["rankfmc/_rankfm.pyx"],
+            include_dirs=[numpy.get_include()],
+            extra_compile_args=compile_args,
+            extra_link_args=link_args,
+        )
+    ],
+    compiler_directives={"language_level": "3"},
 )
 
+setup(ext_modules=extensions)
