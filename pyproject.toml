@@ -48,4 +48,5 @@ before-build = "pip install \"Cython>=3.0\" numpy"
 
 [tool.cibuildwheel.macos]
 before-build = "brew install libomp && pip install 'Cython>=3.0' numpy"
+environment = {MACOSX_DEPLOYMENT_TARGET = "15.0"}
 repair-wheel-command = "DYLD_LIBRARY_PATH=$(brew --prefix libomp)/lib delocate-wheel -w {dest_dir} -v {wheel}"
