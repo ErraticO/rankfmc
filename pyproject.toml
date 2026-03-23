@@ -41,12 +41,12 @@ skip   = "*-musllinux*"
 build-verbosity = 1
 
 [tool.cibuildwheel.linux]
-before-build = "pip install 'Cython>=3.0' numpy"
+before-build = "pip install 'Cython>=3.0' 'numpy' --only-binary numpy"
 
 [tool.cibuildwheel.windows]
-before-build = "pip install \"Cython>=3.0\" numpy"
+before-build = "pip install \"Cython>=3.0\" \"numpy\" --only-binary numpy"
 
 [tool.cibuildwheel.macos]
-before-build = "brew install libomp && pip install 'Cython>=3.0' numpy"
+before-build = "brew install libomp && pip install 'Cython>=3.0' 'numpy' --only-binary numpy"
 environment = {MACOSX_DEPLOYMENT_TARGET = "15.0"}
 repair-wheel-command = "DYLD_LIBRARY_PATH=$(brew --prefix libomp)/lib delocate-wheel -w {dest_dir} -v {wheel}"
