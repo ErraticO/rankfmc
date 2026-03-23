@@ -37,7 +37,7 @@ include = ["rankfmc*"]
 [tool.cibuildwheel]
 # Build CPython 3.9–3.13 on all platforms; skip musl-libc (Alpine) wheels
 build  = "cp39-* cp310-* cp311-* cp312-* cp313-*"
-skip   = "*-musllinux*"
+skip   = "*-musllinux* *_i686"
 build-verbosity = 1
 
 [tool.cibuildwheel.linux]
